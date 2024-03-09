@@ -13,7 +13,7 @@ import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 os.environ['STABILITY_KEY'] = os.getenv('STABILITY_KEY', '')
 
 class DataLayer:
-    def __init__(self, generative_prompt=""):
+    def __init__(self):
         self.anthropic_key = os.getenv('ANTHROPIC_API_KEY', "") 
         self.openai_key = os.getenv('OPENAI_API_KEY', '')  # It's a good practice to load keys from environment variables
         self.stability_api = client.StabilityInference(
@@ -21,7 +21,6 @@ class DataLayer:
             verbose=True,
             engine="stable-diffusion-xl-1024-v1-0",
         )
-        self.generative_prompt = generative_prompt
 
     def bullet_points(self, prompt):
         output = self.get_completion_from_messages(messages=[
@@ -74,12 +73,12 @@ class DataLayer:
             }
        
 
-    def generate_image(self, slide_image=""):
+    def generate_image(self, slide_image="",generative_prompt=""):
         Time_hash = datetime.datetime.today().strftime(r'%H%M%S') 
         if slide_image == "":
             print('No image in this section, Stable Diffusion called')
             answers = self.stability_api.generate(
-                prompt=self.generative_prompt,
+                prompt=generative_prompt,
                 seed=4253978046,
                 steps=50,
                 cfg_scale=8.0,
@@ -112,5 +111,5 @@ if __name__ == '__main__':
             # print(per_slide_dict)
             per_slide_bullets = dl.bullet_points(per_slide_dict['speaker_notes'])
             # print(per_slide_bullets)
-            per_slide_dict['image'] = dl.generate_image(per_slide_dict['image'])
+            per_slide_dict['image'] = dl.generate_image(per_slide_dict['image'], per_slide_dict['generative_prompt'])
             # print(per_slide_dict)
