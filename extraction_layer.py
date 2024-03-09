@@ -49,9 +49,9 @@ class ExtractionLayer:
         ]
         return messages
 
-    def prompt_builder(self, title: str, page_length: int, count: int, choices: str):
-        """Build the prompt based on extracted information and user input."""
-        user_input = choices.split(',')
+    def prompt_builder(self, title: str, page_length: int, count: int, user_choices: str):
+        ###Build the prompt based on extracted information and user input.
+        user_input = user_choices.split(',')
         for count, key in enumerate(self.section_headings.keys()):
             self.section_headings[key] = user_input[count] if count < len(user_input) else ""
 
@@ -61,15 +61,16 @@ class ExtractionLayer:
 
         return self.get_message_prompt(prompt_base)
 
-    def _format_section_prompt(self, title, page_length, count):
+    def _format_section_prompt(self, title, page_length):
         """Format section prompts based on titles and other parameters."""
         prompt_template = f'''
         Section Name: {title}
         Slide Information: {{
-          Number of Slides: {page_length}
-          Speaker Notes: {{"Slide Number": "Long and Detailed Speaker Notes"}}
-          Table: "Latex Table to dictionary if present in {title}"
-          Image Prompt: "Propose a prompt for slide background"
+          Number of Slides: {page_length},
+          Speaker Notes: {{"Slide {{Number}}": "150 words speech for slide"}},
+          Table: Latex Table to header and row dictionary if present in {title},
+          Image: Figure path if present in {title} section (possible selections: {self.figure_list}),
+          Generative Prompt: Propose a cartoonist image prompt related to {title}
         }}
         '''
         return prompt_template
