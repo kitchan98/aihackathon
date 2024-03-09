@@ -2,7 +2,7 @@ FROM ubuntu:latest
 
 # Install Python and LibreOffice
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip libreoffice libreoffice-writer libreoffice-calc && \
+    apt-get install -y python3 python3-pip libreoffice && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
