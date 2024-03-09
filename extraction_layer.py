@@ -1,78 +1,75 @@
-"""Extraction Pipeline class"""
-
 import re
 import json
 
-
 class ExtractionLayer:
+    def __init__(self, file_name="complete_tex.tex"):
+        self.file_name = file_name
+        self.latex_string, self.figure_list, self.section_headings = self.preprocess()
 
-    def __init__(self) -> None:
-        pass
-
-    
-    def preprocess(file_name="complete_tex.tex"):
-
-        with open(file_name,'r') as f:
+    def preprocess(self):
+        """Read LaTeX file and extract relevant information."""
+        with open(self.file_name, 'r') as f:
             latex_string = f.readlines()
 
         figure_list = []
-        Section_headings = {}
-        for count,lines in enumerate(latex_string):
-            if re.match(r'\section', lines):
-                head = lines.lstrip(r'\section{').rstrip().rstrip('}')
-                Section_headings[head] = 0
-            if re.search(r'\includegraphics', lines):
-                try:
-                    figure_list.append(lines.split(']{')[1].rstrip().rstrip('}'))
-                except:
-                    pass
-        return latex_string, figure_list, Section_headings
+        section_headings = {}
+        for count, line in enumerate(latex_string):
+            if re.match(r'\\section', line):
+                head = line.lstrip('\\section{').rstrip().rstrip('}')
+                section_headings[head] = []
+            if re.search(r'\\includegraphics', line):
+                figure_path = self.extract_figure_path(line)
+                if figure_path:
+                    figure_list.append(figure_path)
+        return latex_string, figure_list, section_headings
 
-    def get_message_prompt(self, latex_string, prompt_base):
+    @staticmethod
+    def extract_figure_path(line):
+        """Extract figure path from a line if present."""
+        try:
+            return line.split(']{')[1].rstrip().rstrip('}')
+        except IndexError:
+            return None
 
-
-        messages =[
+    def get_message_prompt(self, prompt_base):
+        """Construct message prompts for interaction."""
+        messages = [
             {
-              "role": "system",
-              "content": "You are an expert slide expert that extracts latex papers and create presentation slides.",
+                "role": "system",
+                "content": "You are an expert slide expert that extracts latex papers and create presentation slides.",
             },
             {
-              "role": "user",
-              "content": f'''
-              Given the document: {latex_string}
-              Analyse paper by section and strictly follow this template but json format:
-              {prompt_base}
-              '''
+                "role": "user",
+                "content": f'''
+                Given the document: {self.latex_string}
+                Analyse paper by section and strictly follow this template but in json format:
+                {prompt_base}
+                '''
             }
         ]
-        
         return messages
-  
 
-    def prompt_builder(self, title: str,page_length: int,count:int, choices: list):
-        
-        latex_string, figure_list, Section_headings = self.preprocess()
-
-        prompt_builder = f'''
-        {{Section Name:  {title}
-        Slide Information: {{
-          Number of Slides: {page_length}
-          Speaker Notes: {{"Slide Number": Long and Detailed Speaker Notes}}
-          Table: Latex Table to dictionary if present in {title}>
-          Image Prompt: Propose a prompt for slide background
-        }}
-        }}
-        '''
+    def prompt_builder(self, title: str, page_length: int, count: int, choices: str):
+        """Build the prompt based on extracted information and user input."""
         user_input = choices.split(',')
-        for count,key in enumerate(Section_headings):
-            Section_headings[key] = user_input[count]
+        for count, key in enumerate(self.section_headings.keys()):
+            self.section_headings[key] = user_input[count] if count < len(user_input) else ""
 
         prompt_base = ''
-        for count,(key,val) in enumerate(Section_headings.items()):
-            prompt_base+=prompt_builder(key,val,count+1)
+        for count, (key, val) in enumerate(self.section_headings.items(), start=1):
+            prompt_base += self._format_section_prompt(title=key, page_length=page_length, count=count)
 
-        output = self.get_message_prompt(latex_string, prompt_base)
+        return self.get_message_prompt(prompt_base)
 
-        return output
-
-
+    def _format_section_prompt(self, title, page_length, count):
+        """Format section prompts based on titles and other parameters."""
+        prompt_template = f'''
+        Section Name: {title}
+        Slide Information: {{
+          Number of Slides: {page_length}
+          Speaker Notes: {{"Slide Number": "Long and Detailed Speaker Notes"}}
+          Table: "Latex Table to dictionary if present in {title}"
+          Image Prompt: "Propose a prompt for slide background"
+        }}
+        '''
+        return prompt_template
