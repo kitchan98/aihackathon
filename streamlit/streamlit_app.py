@@ -3,6 +3,7 @@ from st_click_detector import click_detector
 import base64
 
 import time
+import random
 
 
 def convert_image(image_path):
@@ -46,8 +47,25 @@ def document_upload_app(placeholder):
         # Simulate processing time
         time.sleep(0.03)
         # progress_placeholder = st.progress(100)
-        st.session_state.loading_complete = True
+        st.session_state.current_page = 2
 
+
+def outline_app(placeholder_):
+    placeholder_.title("Outline")
+
+    scene_title = ['Introduction', 'Abstract', 'More info', 'more info', 'more info']
+
+    cols = st.columns(4)
+    for columns in range(4):
+        cols[columns].selectbox(scene_title[columns], ("1", "2", "3"), key = columns)
+
+    st.button(
+        'Load Slides',
+        on_click = outline_btn_clicked
+    )
+
+def outline_btn_clicked():
+    st.session_state.current_page = 3
 
 def slides_app(placeholder):
     placeholder.write("# Selected slides")
@@ -93,24 +111,32 @@ def main():
     # Page 1: Document Upload
     page_1_placeholder = st.empty()
     page_2_placeholder = st.empty()
-    if st.session_state.show_file_uploader:
+    page_3_placeholder = st.empty()
+
+    if st.session_state.current_page == 1:
         document_upload_app(page_1_placeholder)
-    # Page 2: Hello World (displayed after processing is completed)
-    if st.session_state.loading_complete:
+
+    if st.session_state.current_page == 2:
         page_1_placeholder.empty()
+
+        outline_app(page_1_placeholder)
+
+    if st.session_state.current_page == 3:
+        page_2_placeholder.empty()
         print(st.session_state)
-        page_2_placeholder.header("Creating your presentation ...")
-        slides_app(page_2_placeholder)
+        page_3_placeholder.header("Creating your presentation ...")
+        slides_app(page_3_placeholder)
 
 
 def initialize_page():
     st.write("Initializing...")
     st.session_state.show_file_uploader = True
     st.session_state.initialized = True
-    st.session_state.loading_complete = False
+    st.session_state.current_page = 1
     st.session_state.selected_index = None
     st.session_state.selected_template = None
     st.session_state.result = ["Template 1", "Template 2", "Template 3"]
+    st.session_state.total_slide_count = 0
 
 
 if __name__ == "__main__":
