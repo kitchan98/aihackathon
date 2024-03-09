@@ -1,7 +1,11 @@
 """Class that builds the presentation."""
 
+import os
+import subprocess
 from pptx import Presentation
 from pptx.util import Inches
+from pdf2image import convert_from_path
+from typing import List
 
 
 class PresentationCreator:
@@ -59,6 +63,38 @@ class PresentationCreator:
         """Save presentation to file."""
         self.prs.save(file_name)
 
-    def convert_presentation_to_image(self, file_name: str) -> None:
+    def convert_presentation_to_image(self, file_name: str, directory_name) -> List:
         """Convert presentation to image."""
-        pass
+        pdf_path = os.path.join(directory_name, "presentation.pdf")
+        os.makedirs(directory_name, exist_ok=True)
+        subprocess.run(["unoconvert", "--convert-to", "pdf", file_name, pdf_path])
+        return [
+            x.filename
+            for x in convert_from_path(
+                pdf_path, output_folder=directory_name, fmt="png"
+            )
+        ]
+
+
+if __name__ == "__main__":
+    # Create presentation
+    presentation_creator = PresentationCreator()
+    slide_info = {
+        "layout": "2",
+        "title": "Slide 1",
+        "content": "This is the content for slide 1.\n"
+        "This is the content for slide 1.",
+    }
+    presentation_creator.add_slide(slide_info)
+    slide_info = {
+        "layout": "9",
+        "title": "Slide 2",
+        "image": "sample_image.jpg",
+    }
+    presentation_creator.add_slide(slide_info)
+    presentation_creator.save_presentation("sample_presentation.pptx")
+    print("Presentation created successfully!")
+    img_paths = presentation_creator.convert_presentation_to_image(
+        "sample_presentation.pptx", "presentation_images"
+    )
+    print(f"Presentation converted to images successfully at {img_paths}!")
