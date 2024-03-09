@@ -55,11 +55,10 @@ class ExtractionLayer:
         ]
         return messages
 
-    def prompt_builder(self, user_choices: str):
+    def prompt_builder(self, user_choices: list):
         """Build the prompt based on extracted information and user input."""
-        user_input = user_choices.split(",")
         for count, key in enumerate(self.section_headings.keys()):
-            self.section_headings[key] = user_input[count] if count < len(user_input) else ""
+            self.section_headings[key] = user_choices[count] if count < len(user_choices) else ""
 
         prompt_base = ""
         for count, (key, val) in enumerate(self.section_headings.items(), start=1):
@@ -70,18 +69,20 @@ class ExtractionLayer:
     def _format_section_prompt(self, title, num_slides):
         """Format section prompts based on titles and other parameters."""
         prompt_template = f"""
-            section_name: {title}
-            num_slides: {num_slides},
-            slides_information: {{List of {num_slides} information objects, "
-                "where each object corresponds to information in that slide, "
-                "it should be in the following format:
-                [{{
-                    "slide_number": {{Slide number for this section}},
-                    "speaker_notes": "250 words speech for slide",
-                    "table": Latex Table to header and row dictionary if present in {title},
-                    "image": Figure path if present in {title} section (possible selections: {self.figure_list}),
-                    "generative_prompt": Propose a cartoonist image prompt related to {title}
-                }}]
+            {title}: {{
+                num_slides: {num_slides},
+                slides_information: {{List of {num_slides} information objects, "
+                    "where each object corresponds to information in that slide, "
+                    "it should be in the following format:
+                    [{{
+                        "slide_title": "Title for each slide",
+                        "slide_number": {{Slide number for this section}},
+                        "speaker_notes": "250 words speech for slide",
+                        "table": Latex Table to header and row dictionary if present in {title} '' if absent,
+                        "image": Figure path if present in {title} section (possible selections: {self.figure_list}) '' if absent,
+                        "generative_prompt": Propose a cartoonist image prompt related to {title}
+                    }}]
+                }}
             }}
         """
         return prompt_template
@@ -89,9 +90,9 @@ class ExtractionLayer:
 
 if __name__ == "__main__":
     el = ExtractionLayer(file_name="examples/arXiv-2402.04616v1/complete_tex.tex")
-    user_choices = "3,1,1,1,1,1,1,1"
+    user_choices = [3,1,1,1]
     messages = el.prompt_builder(user_choices=user_choices)
     pprint.pprint(messages)
-    # print(el.section_headings)
+    print(el.section_headings)
     # print(el.figure_list)
     # print(el.latex_string)
