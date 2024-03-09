@@ -19,14 +19,6 @@ class DataLayer:
             engine="stable-diffusion-xl-1024-v1-0",
         )
 
-        self.my_dict = {
-            'Title': {
-                'Information': 'Some info',
-                'Page Number': 'Some info',
-                'Images': 'Some Image',
-                'Tables': 'Some Table'
-            }
-        }
 
         self.slide_image = slide_image
         self.generative_prompt = generative_prompt
@@ -44,10 +36,10 @@ class DataLayer:
                     "content": f"Given the document: {info}\nGive me 4 concise, 10 words bullet points for the slide",
                 }
             ], model='gpt-3.5-turbo')
-            bullets.append([x.strip('* ') for x in output.split('\n') if x.strip()])
+            bullets.append([x.strip('* ').strip() for x in output.split('\n')])
         return bullets
 
-    def get_completion_from_messages(self, messages, model="gpt-3.5-turbo", temperature=0, max_tokens=1200):
+    def get_completion_from_messages(self, messages, model="gpt-4-turbo-preview", temperature=0, max_tokens=1300):
         openai.api_key = self.openai_key
         response = openai.ChatCompletion.create(
             model=model,
@@ -58,9 +50,12 @@ class DataLayer:
         return response.choices[0].message.content
 
     def llm_output_to_dict(self, llm_output, content_num):
-        section_json = [x.strip('```').strip() for x in llm_output.split('\n\n') if x.strip()]
-        if section_json:
-            result = json.loads(section_json[content_num])
+        Section_Json = []
+        for x in llm_output.split('\n\n'):
+            Section_Json.append(x.replace('```','').lstrip().rstrip().lstrip('json'))
+        Section_Json = [x for x in Section_Json if not x == '']
+        if Section_Json:
+            result = json.loads(f'{Section_Json[content_num]}')
             return {
                 'section_name': result['Section Name'],
                 'number_of_slides': result['Slide Information']['Number of Slides'],
@@ -71,6 +66,7 @@ class DataLayer:
             }
         else:
             return {}
+       
 
     def generate_image(self):
         if not self.slide_image:
