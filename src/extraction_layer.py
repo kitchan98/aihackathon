@@ -77,7 +77,7 @@ class ExtractionLayer:
                         "slide_title": "Title for each slide",
                         "slide_number": {{Slide number for this section}},
                         "speaker_notes": "250 words speech for slide",
-                        "table": Latex Table to header and row dictionary if present in {title} "" if absent,
+                        "table": Extract data from latex tables to a dictionary consisting of header and rows if present in {title}, "" if absent,
                         "image": Figure path if present in {title} section (possible selections: {self.figure_list}) "" if absent,
                         "generative_prompt": Propose a cartoonist image prompt related to {title}
                     }}]

@@ -6,3 +6,4 @@ openai
 stability-sdk
 st-click-detector
 pdf2image
+tabulate

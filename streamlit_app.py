@@ -4,6 +4,7 @@ import os
 import pickle
 import tempfile
 from typing import Dict
+from param import output
 import streamlit as st
 import base64
 from src.utils import convert_compressed_file_to_single_latex_file
@@ -26,12 +27,6 @@ def convert_image(image_path):
         return base64.b64encode(image_file.read()).decode("utf-8")
 
 
-num_slides = 3
-result = ["Template1"] * num_slides
-
-image_name_to_path = {"image_1": "images/image1.png", "image_2": "images/image2.png", "image_3": "images/image3.png"}
-
-
 def slide_row(image_data):
     for index, image_datum in enumerate(image_data):
         image_src = f"data:image/png;base64,{image_datum[2]}"
@@ -49,9 +44,12 @@ def document_upload_app():
         st.write("File uploaded")
         st.session_state.show_file_uploader = False
 
-        st.session_state.temp_dir = os.path.abspath(
-            tempfile.mkdtemp(prefix="temp_dir_", dir=".")
-        )  # Create a temporary directory
+        # @TODO: Uncomment the following line to use the temporary directory
+        # st.session_state.temp_dir = os.path.abspath(
+        #     tempfile.mkdtemp(prefix="temp_dir_", dir=".")
+        # )  # Create a temporary directory
+        # st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_ehk1qfm5"
+        st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_ha9jsu5p"
         bytes_data = uploaded_file.getvalue()
         uploaded_file_path = os.path.join(st.session_state.temp_dir, "uploaded_file.zip")
         with open(uploaded_file_path, "wb") as f:
@@ -95,13 +93,14 @@ def template_btn_clicked(template_index):
 
 def extract_data_from_tex():
     """Extract data from tex file."""
-    messages = st.session_state.extractor.prompt_builder(st.session_state.slide_per_section)
-    dl = DataLayer(save_folder="output_images")
+    # messages = st.session_state.extractor.prompt_builder(st.session_state.slide_per_section)
+    # dl = DataLayer(save_folder="output_images")
     # llm_output = dl.get_completion_from_messages(messages, openAI=False, model="claude-3-sonnet-20240229")
-    # with open("output.json", "w") as f:
-    # f.write(llm_output)
-    with open("output.json", "r") as f:
-        llm_output = f.read()
+    # output_json_path = os.path.join(st.session_state.temp_dir, "output.json")
+    # with open(output_json_path, "w") as f:
+    #     f.write(llm_output)
+    # with open(output_json_path, "r") as f:
+    #     llm_output = f.read()
     # slide_specific_data = []
     # for idx, x in enumerate(st.session_state.extractor.section_headings):
     #     for y in range(1, st.session_state.extractor.user_choices[idx] + 1):
@@ -109,11 +108,12 @@ def extract_data_from_tex():
     #         # print(per_slide_dict)
     #         per_slide_bullets = dl.bullet_points(per_slide_dict["speaker_notes"])
     #         # print(per_slide_bullets)
-    # per_slide_dict["image"] = dl.generate_image(per_slide_dict["image"], per_slide_dict["generative_prompt"])
+    #         per_slide_dict["image"] = dl.generate_image(per_slide_dict["image"], per_slide_dict["generative_prompt"])
     #         slide_specific_data.append([per_slide_dict, per_slide_bullets])
-    # with open("slide_specific_data.json", "wb") as f:
+    slide_specific_data_pkl_path = os.path.join(st.session_state.temp_dir, "slide_specific_data.pkl")
+    # with open(slide_specific_data_pkl_path, "wb") as f:
     #     pickle.dump(slide_specific_data, f)
-    with open("slide_specific_data.json", "rb") as f:
+    with open(slide_specific_data_pkl_path, "rb") as f:
         slide_specific_data = pickle.load(f)
         # st.write(slide_specific_data)
         create_presentation(slide_specific_data)
@@ -129,6 +129,7 @@ def create_presentation(slide_specific_data):
     st.session_state.result = []
     for idx, (slide_info, slide_bullets) in enumerate(slide_specific_data):
         prs_creator = MarpCreator()
+        st.write(slide_info)
         slide_data = {
             "title": slide_info["slide_title"],
             "content": "\n".join([x for x in slide_bullets]),
@@ -137,7 +138,11 @@ def create_presentation(slide_specific_data):
                 if os.path.exists(slide_info["image"])
                 else os.path.join(st.session_state.extracted_folder, slide_info["image"])
             ),
-            "table": tabulate(slide_info["table"]["rows"], headers=slide_info["table"]["header"], tablefmt="pipe")
+            "table": (
+                tabulate(slide_info["table"]["rows"], headers=slide_info["table"]["header"], tablefmt="pipe")
+                if slide_info["table"] != ""
+                else ""
+            ),
         }
         # prs_creator.add_title_content_layout(
         #     slide_info=slide_data,
@@ -145,6 +150,8 @@ def create_presentation(slide_specific_data):
         # prs_creator.add_picture_caption_layout(slide_info=slide_data)
         prs_creator.add_title_and_content_slide(slide_info=slide_data)
         prs_creator.add_title_image_and_content_slide(slide_info=slide_data)
+        if slide_info["table"] != "":
+            prs_creator.add_title_table_and_content_slide(slide_info=slide_data)
         st.session_state.slides_to_templates[idx] = prs_creator.slides
         md_path = os.path.join(st.session_state.temp_dir, f"slide_{idx}.md")
         images_path = os.path.join(st.session_state.images_path, f"slide_{idx}")
