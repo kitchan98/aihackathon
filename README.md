@@ -43,3 +43,9 @@ We extract the story to be presented based on the user preferences. Each section
 We add images to the presentation to make it more engaging. When a relevant image is available in the uploaded zip we use that, else we use the Stability.ai API to get the relevant image.
 
 ![Adding fire and fun to the presentation](./screenshots/stability.png)
+
+### Construct the presentation
+
+Now based on your preferences and the extracted story, we construct the presentation for you. For each slide we provide a few choice of templates and you can select the one you like.
+
+![Construct the presentation](./screenshots/template_selection.png)
