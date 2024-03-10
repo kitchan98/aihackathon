@@ -24,4 +24,22 @@ STABILITY_KEY=<KEY> OPENAI_API_KEY=<KEY> ANTHROPIC_API_KEY=<KEY> streamlit run s
 
 We currently expect a zip file containing the latex files used to generate the paper. Further we expect that the primary `tex` file is named as `main.tex`.
 
-![Upload the paper](./screenshots/upload_paper.png)
+![Upload the paper](./screenshots/upload.png)
+
+### Provide preferences on how much slides need per section
+
+We provide a selectbox to the user to select the number of slides they want per section.
+
+![Provide preferences on how much slides need per section](./screenshots/user_preferences.png)
+
+### Extract the story to be presented based on preference
+
+We extract the story to be presented based on the user preferences. Each section is divided in slides based on the user preferences. ChatGPT and OpenAI come to the rescue here.
+
+![Extract the story to be presented based on preference](./screenshots/chatgpt.png)
+
+### Adding fire and fun to the presentation
+
+We add images to the presentation to make it more engaging. When a relevant image is available in the uploaded zip we use that, else we use the Stability.ai API to get the relevant image.
+
+![Adding fire and fun to the presentation](./screenshots/stability.png)

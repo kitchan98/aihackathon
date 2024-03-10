@@ -40,12 +40,12 @@ def document_upload_app():
         st.session_state.show_file_uploader = False
 
         # @TODO: Uncomment the following line to use the temporary directory
-        # st.session_state.temp_dir = os.path.abspath(
-        #     tempfile.mkdtemp(prefix="temp_dir_", dir=".")
-        # )  # Create a temporary directory
+        st.session_state.temp_dir = os.path.abspath(
+            tempfile.mkdtemp(prefix="temp_dir_", dir=".")
+        )  # Create a temporary directory
         # st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_ehk1qfm5"
         # st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_ha9jsu5p"
-        st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_8a6px7mc"
+        # st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_8a6px7mc"
         bytes_data = uploaded_file.getvalue()
         uploaded_file_path = os.path.join(st.session_state.temp_dir, "uploaded_file.zip")
         with open(uploaded_file_path, "wb") as f:
@@ -91,41 +91,41 @@ def extract_data_from_tex():
     """Extract data from tex file."""
     messages = st.session_state.extractor.prompt_builder(st.session_state.slide_per_section)
     dl = DataLayer(save_folder="output_images")
-    # with st.spinner("ClaudeAI and ChatGPT are working on your request..."):
-    #     llm_output = dl.get_completion_from_messages(messages, openAI=False, model="claude-3-sonnet-20240229")
+    with st.spinner("ClaudeAI and ChatGPT are working on your request..."):
+        llm_output = dl.get_completion_from_messages(messages, openAI=False, model="claude-3-sonnet-20240229")
     output_json_path = os.path.join(st.session_state.temp_dir, "output.json")
-    # with open(output_json_path, "w") as f:
-    #     f.write(llm_output)
+    with open(output_json_path, "w") as f:
+        f.write(llm_output)
     with open(output_json_path, "r") as f:
         llm_output = f.read()
     slide_specific_data = []
-    # with st.spinner("Stability is in the HOUSE!! and generating images..."):
-    #     for idx, x in enumerate(st.session_state.extractor.section_headings):
-    #         for y in range(1, st.session_state.extractor.user_choices[idx] + 1):
-    #             per_slide_dict = dl.llm_output_to_dict(llm_output, x, y)
-    #             # print(per_slide_dict)
-    #             per_slide_bullets = dl.bullet_points(per_slide_dict["speaker_notes"])
-    #             # print(per_slide_bullets)
-    #             per_slide_dict["image"] = dl.generate_image(
-    #                 per_slide_dict["image"], per_slide_dict["generative_prompt"]
-    #             )
-    #             slide_specific_data.append([per_slide_dict, per_slide_bullets])
-    # slide_specific_data.insert(
-    #     0,
-    #     (
-    #         {
-    #             "slide_title": slide_specific_data[0][0]["Paper Title"],
-    #             "image": "",
-    #             "table": "",
-    #             "Paper Title": slide_specific_data[0][0]["Paper Title"],
-    #             "slide_number": 0,
-    #         },
-    #         [],
-    #     ),
-    # )
+    with st.spinner("Stability is in the HOUSE!! and generating images..."):
+        for idx, x in enumerate(st.session_state.extractor.section_headings):
+            for y in range(1, st.session_state.extractor.user_choices[idx] + 1):
+                per_slide_dict = dl.llm_output_to_dict(llm_output, x, y)
+                # print(per_slide_dict)
+                per_slide_bullets = dl.bullet_points(per_slide_dict["speaker_notes"])
+                # print(per_slide_bullets)
+                per_slide_dict["image"] = dl.generate_image(
+                    per_slide_dict["image"], per_slide_dict["generative_prompt"]
+                )
+                slide_specific_data.append([per_slide_dict, per_slide_bullets])
+    slide_specific_data.insert(
+        0,
+        (
+            {
+                "slide_title": slide_specific_data[0][0]["Paper Title"],
+                "image": "",
+                "table": "",
+                "Paper Title": slide_specific_data[0][0]["Paper Title"],
+                "slide_number": 0,
+            },
+            [],
+        ),
+    )
     slide_specific_data_pkl_path = os.path.join(st.session_state.temp_dir, "slide_specific_data.pkl")
-    # with open(slide_specific_data_pkl_path, "wb") as f:
-    #     pickle.dump(slide_specific_data, f)
+    with open(slide_specific_data_pkl_path, "wb") as f:
+        pickle.dump(slide_specific_data, f)
     with open(slide_specific_data_pkl_path, "rb") as f:
         slide_specific_data = pickle.load(f)
         # st.write(slide_specific_data)
