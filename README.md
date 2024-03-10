@@ -17,3 +17,11 @@ Once the image
 ```bash
 STABILITY_KEY=<KEY> OPENAI_API_KEY=<KEY> ANTHROPIC_API_KEY=<KEY> streamlit run streamlit_app.py
 ```
+
+## Screenshots
+
+### Upload the paper
+
+We currently expect a zip file containing the latex files used to generate the paper. Further we expect that the primary `tex` file is named as `main.tex`.
+
+![Upload the paper](./screenshots/upload_paper.png)
