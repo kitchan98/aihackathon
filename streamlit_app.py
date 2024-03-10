@@ -1,14 +1,17 @@
+from email.mime import image
+import enum
 import os
 import pickle
 import tempfile
 from typing import Dict
 import streamlit as st
-from st_click_detector import click_detector
 import base64
 from src.utils import convert_compressed_file_to_single_latex_file
 from src.extraction_layer import ExtractionLayer
 from src.data_layer import DataLayer
-from src.presentation_creator import PresentationCreator
+from st_click_detector import click_detector
+
+# from src.presentation_creator import PresentationCreator
 from src.marp_creator import MarpCreator
 
 import time
@@ -28,16 +31,10 @@ result = ["Template1"] * num_slides
 image_name_to_path = {"image_1": "images/image1.png", "image_2": "images/image2.png", "image_3": "images/image3.png"}
 
 
-def slide_row(image_paths):
-    clickable_element = ""
-    for index, image_path in enumerate(image_paths):
-        imageBase64 = convert_image(image_path)
-        image_src = f"data:image/png;base64,{imageBase64}"
-        clickable_element += (
-            f'<a href="#" id="{index}" >'
-            f'<img  src="{image_src}" alt="Image" width="120px" style="padding-right:10px"></a>'
-        )
-    return clickable_element
+def slide_row(image_data):
+    for index, image_datum in enumerate(image_data):
+        image_src = f"data:image/png;base64,{image_datum[2]}"
+        st.image(image_src, use_column_width=True, caption=f"Slide {index + 1}")
 
 
 def document_upload_app():
@@ -51,7 +48,9 @@ def document_upload_app():
         st.write("File uploaded")
         st.session_state.show_file_uploader = False
 
-        st.session_state.temp_dir = tempfile.mkdtemp()
+        st.session_state.temp_dir = os.path.abspath(
+            tempfile.mkdtemp(prefix="temp_dir_", dir=".")
+        )  # Create a temporary directory
         bytes_data = uploaded_file.getvalue()
         uploaded_file_path = os.path.join(st.session_state.temp_dir, "uploaded_file.zip")
         with open(uploaded_file_path, "wb") as f:
@@ -67,11 +66,30 @@ def document_upload_app():
         st.session_state.current_page = 2
 
 
-def get_template_content(template_data: Dict) -> str:
-    element = ""
-    for key, val in template_data.items():
-        element += f"<a href='#' id='{key}'><img width='100' src='data:image/png;base64,{convert_image(val)}'></a>"
-    return element
+def get_template_content(template_data) -> str:
+    total_rows = len(template_data) // 2 + 1
+    for row in range(total_rows):
+        cols = st.columns(2)
+        for col_idx, col in enumerate(cols):
+            index = row * 2 + col_idx
+            if index < len(template_data):
+                datum = template_data[index]
+                image_src = f"data:image/png;base64,{datum[2]}"
+                with col:
+                    st.image(image_src, width=400, caption=f"Template {index + 1}")
+                    st.button(
+                        f"Select Template {index + 1}",
+                        key=f"select_template_{index}",
+                        on_click=template_btn_clicked,
+                        args=[index + 1],
+                    )
+
+
+def template_btn_clicked(template_index):
+    """Template button clicked."""
+    st.session_state.result[st.session_state.current_slide] = template_index
+    if st.session_state.current_slide < len(st.session_state.result) - 1:
+        st.session_state.current_slide += 1
 
 
 def extract_data_from_tex():
@@ -96,20 +114,25 @@ def extract_data_from_tex():
     #     pickle.dump(slide_specific_data, f)
     with open("slide_specific_data.json", "rb") as f:
         slide_specific_data = pickle.load(f)
-        st.write(slide_specific_data)
+        # st.write(slide_specific_data)
         create_presentation(slide_specific_data)
 
 
 def create_presentation(slide_specific_data):
     """Create presentation from slide specific data."""
     # prs_creator = PresentationCreator()
-    prs_creator = MarpCreator()
-    for slide_info, slide_bullets in slide_specific_data:
+    st.session_state.slides_to_templates = {}
+    st.session_state.slides_to_images = {}
+    st.session_state.images_path = os.path.join(st.session_state.temp_dir, "images")
+    os.makedirs(st.session_state.images_path, exist_ok=True)
+    st.session_state.result = []
+    for idx, (slide_info, slide_bullets) in enumerate(slide_specific_data):
+        prs_creator = MarpCreator()
         slide_data = {
             "title": slide_info["slide_title"],
             "content": "\n".join([x for x in slide_bullets]),
             "image": (
-                slide_info["image"]
+                os.path.abspath(slide_info["image"])
                 if os.path.exists(slide_info["image"])
                 else os.path.join(st.session_state.extracted_folder, slide_info["image"])
             ),
@@ -120,8 +143,26 @@ def create_presentation(slide_specific_data):
         # prs_creator.add_picture_caption_layout(slide_info=slide_data)
         prs_creator.add_title_and_content_slide(slide_info=slide_data)
         prs_creator.add_title_image_and_content_slide(slide_info=slide_data)
+        st.session_state.slides_to_templates[idx] = prs_creator.slides
+        md_path = os.path.join(st.session_state.temp_dir, f"slide_{idx}.md")
+        images_path = os.path.join(st.session_state.images_path, f"slide_{idx}")
+        prs_creator.save_presentation(md_path)
+        prs_creator.convert_to_images(md_path, images_path)
+        st.session_state.slides_to_images[idx] = sorted(
+            [
+                (int(x.name.split(".")[-1]), x.path, convert_image(x.path))
+                for x in os.scandir(st.session_state.images_path)
+                if x.name.startswith(f"slide_{idx}")
+            ],
+            key=lambda x: x[0],
+        )[
+            :-1
+        ]  # remove the last image which is the last thank you slide
+        st.session_state.result.append(-1)
+    st.session_state.current_slide = 0
     # prs_creator.save_presentation("presentation_sample.pptx")
-    prs_creator.save_presentation("presentation_marp.md")
+    # prs_creator.save_presentation("presentation_marp.md")
+    # st.session_state.prs_path = "presentation_marp.md"
     # prs_creator.convert_presentation_to_image("presentation_sample.pptx", "presentation_images")
 
 
@@ -152,36 +193,45 @@ def outline_btn_clicked():
     st.session_state.current_page = 3
 
 
+def previous_slide():
+    """Previous slide."""
+    if st.session_state.current_slide > 0:
+        st.session_state.current_slide -= 1
+
+
+def template_selector():
+    """Template selector."""
+    index = int(st.session_state.current_slide)
+    st.write(f"## Select a template for the Slide #{index + 1}")
+    get_template_content(st.session_state.slides_to_images[index])
+    if st.session_state.current_slide > 0:
+        st.button("Previous slide", on_click=previous_slide)
+
+    # st.write(f"index = {index}")
+    # st.write(f"template= {st.session_state.selected_template}")
+    # st.write(st.session_state.result)
+    # print(st.session_state.result)
+
+
 def slides_app():
-    st.header("Let's create your presentation!")
-    st.write("# Selected slides")
+    cols = st.columns([0.8, 0.2])
+    with cols[0]:
+        st.title("Welcome to Slides Builder!")
+        st.write("Select the template you want for each slide and create your draft.")
+    # st.write(st.session_state)
+    cols = st.columns([0.3, 0.7])
+    with cols[1]:
+        template_selector()
 
-    slides_placeholder = st.empty()
-    with slides_placeholder:
-        content = slide_row([image_name_to_path[x] for x in st.session_state.result])
-        click_detector(content, key="selected_slide")
-
-    if st.session_state.selected_slide is not None:
-        if st.session_state.selected_slide != st.session_state.prev_selected_slide:
-            st.session_state.selected_template = None
-        st.session_state.prev_selected_slide = st.session_state.selected_slide
-        # Handle button clicks
-        index = int(st.session_state.selected_slide)
-        st.write(f"# Select a template for the Slide #{index + 1}")
-        click_detector(get_template_content(image_name_to_path), key="selected_template")
-
-        st.write(f"index = {index}")
-        st.write(f"template= {st.session_state.selected_template}")
-
-        if st.session_state.selected_template is not None:
-            if st.session_state.selected_template != st.session_state.prev_selected_template:
-                st.session_state.prev_selected_template = st.session_state.selected_template
-                st.session_state.result[index] = st.session_state.selected_template
-                # slides_placeholder.empty()
-                st.experimental_rerun()
-
-        st.write(st.session_state.result)
-        print(st.session_state.result)
+    with cols[0].container(height=800):
+        st.write("## Draft")
+        slide_row(
+            [
+                st.session_state.slides_to_images[idx][selected_template - 1]
+                for idx, selected_template in enumerate(st.session_state.result)
+                if selected_template != -1
+            ]
+        )
 
 
 def setup_extractor():
@@ -217,17 +267,16 @@ def initialize_page():
     st.session_state.show_file_uploader = True
     st.session_state.initialized = True
     st.session_state.loading_complete = False
-    st.session_state.selected_slide = None
-    st.session_state.prev_selected_slide = None
+    st.session_state.current_slide = None
+    st.session_state.prev_slide = None
     st.session_state.selected_template = None
     st.session_state.prev_selected_template = None
-    st.session_state.result = list(image_name_to_path.keys())
     st.session_state.current_page = 1
-    st.session_state.selected_index = None
     st.session_state.total_slide_count = 0
 
 
 if __name__ == "__main__":
+    st.set_page_config(layout="wide")
     if getattr(st.session_state, "initialized", None) is None:
         initialize_page()
     main()

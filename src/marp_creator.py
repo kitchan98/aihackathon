@@ -1,5 +1,7 @@
 """Python file to create marp files."""
 
+import subprocess
+
 
 class MarpCreator:
     """Class to create Marp files."""
@@ -74,3 +76,16 @@ style: |
 
     def convert_to_images(self, filename: str, directory_name: str) -> None:
         """Convert the presentation to images."""
+        subprocess.run(
+            [
+                "npx",
+                "@marp-team/marp-cli@latest",
+                "--images",
+                "png",
+                filename,
+                "--allow-local-files",
+                "--html",
+                "-o",
+                directory_name,
+            ]
+        )
