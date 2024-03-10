@@ -13,3 +13,4 @@ def convert_compressed_file_to_single_latex_file(input_file_path, output_dir, ou
     process = subprocess.run(["perl", latexpand_path, "main.tex", "-o", output_file_path], cwd=extracted_folder)
     if process.check_returncode() == 0:
         raise Exception("Error in converting compressed file to single LaTeX file.")
+    return extracted_folder

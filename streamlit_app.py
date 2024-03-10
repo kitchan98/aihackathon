@@ -1,4 +1,5 @@
 import os
+import pickle
 import tempfile
 from typing import Dict
 import streamlit as st
@@ -6,6 +7,9 @@ from st_click_detector import click_detector
 import base64
 from src.utils import convert_compressed_file_to_single_latex_file
 from src.extraction_layer import ExtractionLayer
+from src.data_layer import DataLayer
+from src.presentation_creator import PresentationCreator
+from src.marp_creator import MarpCreator
 
 import time
 
@@ -29,7 +33,10 @@ def slide_row(image_paths):
     for index, image_path in enumerate(image_paths):
         imageBase64 = convert_image(image_path)
         image_src = f"data:image/png;base64,{imageBase64}"
-        clickable_element += f'<a href="#" id="{index}" ><img  src="{image_src}" alt="Image" width="120px" style="padding-right:10px"></a>'
+        clickable_element += (
+            f'<a href="#" id="{index}" >'
+            f'<img  src="{image_src}" alt="Image" width="120px" style="padding-right:10px"></a>'
+        )
     return clickable_element
 
 
@@ -50,7 +57,7 @@ def document_upload_app():
         with open(uploaded_file_path, "wb") as f:
             f.write(bytes_data)
         st.session_state.complete_latex = os.path.join(st.session_state.temp_dir, "complete_tex.tex")
-        convert_compressed_file_to_single_latex_file(
+        st.session_state.extracted_folder = convert_compressed_file_to_single_latex_file(
             uploaded_file_path, st.session_state.temp_dir, st.session_state.complete_latex
         )
 
@@ -67,10 +74,61 @@ def get_template_content(template_data: Dict) -> str:
     return element
 
 
+def extract_data_from_tex():
+    """Extract data from tex file."""
+    messages = st.session_state.extractor.prompt_builder(st.session_state.slide_per_section)
+    dl = DataLayer(save_folder="output_images")
+    # llm_output = dl.get_completion_from_messages(messages, openAI=False, model="claude-3-sonnet-20240229")
+    # with open("output.json", "w") as f:
+    # f.write(llm_output)
+    with open("output.json", "r") as f:
+        llm_output = f.read()
+    # slide_specific_data = []
+    # for idx, x in enumerate(st.session_state.extractor.section_headings):
+    #     for y in range(1, st.session_state.extractor.user_choices[idx] + 1):
+    #         per_slide_dict = dl.llm_output_to_dict(llm_output, x, y)
+    #         # print(per_slide_dict)
+    #         per_slide_bullets = dl.bullet_points(per_slide_dict["speaker_notes"])
+    #         # print(per_slide_bullets)
+    # per_slide_dict["image"] = dl.generate_image(per_slide_dict["image"], per_slide_dict["generative_prompt"])
+    #         slide_specific_data.append([per_slide_dict, per_slide_bullets])
+    # with open("slide_specific_data.json", "wb") as f:
+    #     pickle.dump(slide_specific_data, f)
+    with open("slide_specific_data.json", "rb") as f:
+        slide_specific_data = pickle.load(f)
+        st.write(slide_specific_data)
+        create_presentation(slide_specific_data)
+
+
+def create_presentation(slide_specific_data):
+    """Create presentation from slide specific data."""
+    # prs_creator = PresentationCreator()
+    prs_creator = MarpCreator()
+    for slide_info, slide_bullets in slide_specific_data:
+        slide_data = {
+            "title": slide_info["slide_title"],
+            "content": "\n".join([x for x in slide_bullets]),
+            "image": (
+                slide_info["image"]
+                if os.path.exists(slide_info["image"])
+                else os.path.join(st.session_state.extracted_folder, slide_info["image"])
+            ),
+        }
+        # prs_creator.add_title_content_layout(
+        #     slide_info=slide_data,
+        # )
+        # prs_creator.add_picture_caption_layout(slide_info=slide_data)
+        prs_creator.add_title_and_content_slide(slide_info=slide_data)
+        prs_creator.add_title_image_and_content_slide(slide_info=slide_data)
+    # prs_creator.save_presentation("presentation_sample.pptx")
+    prs_creator.save_presentation("presentation_marp.md")
+    # prs_creator.convert_presentation_to_image("presentation_sample.pptx", "presentation_images")
+
+
 def outline_app():
     st.title("Outline")
 
-    st.session_state.section_titles = list(st.session_state.extractor.section_headings.keys())
+    st.session_state.section_titles = st.session_state.extractor.section_headings
 
     section_titles = st.session_state.section_titles
     num_columns = 4
@@ -87,9 +145,10 @@ def outline_app():
 
 
 def outline_btn_clicked():
-    st.session_state.slide_per_section = {
-        section: int(st.session_state[f"num_slides_{section}"]) for section in st.session_state.section_titles
-    }
+    st.session_state.slide_per_section = [
+        int(st.session_state[f"num_slides_{section}"]) for section in st.session_state.section_titles
+    ]
+    extract_data_from_tex()
     st.session_state.current_page = 3
 
 

@@ -1,2 +1,8 @@
 python-pptx
 unoserver
+streamlit
+anthropic
+openai
+stability-sdk
+st-click-detector
+pdf2image

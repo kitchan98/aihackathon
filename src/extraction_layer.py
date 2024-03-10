@@ -15,11 +15,11 @@ class ExtractionLayer:
             latex_string = f.readlines()
 
         figure_list = []
-        section_headings = {}
+        section_headings = []
         for count, line in enumerate(latex_string):
             if re.match(r"\\section", line):
                 head = line.lstrip("\\section{").rstrip().rstrip("}")
-                section_headings[head] = []
+                section_headings.append(head)
             if re.search(r"\\includegraphics", line):
                 figure_path = self.extract_figure_path(line)
                 if figure_path:
@@ -57,12 +57,10 @@ class ExtractionLayer:
 
     def prompt_builder(self, user_choices: list):
         """Build the prompt based on extracted information and user input."""
-        for count, key in enumerate(self.section_headings.keys()):
-            self.section_headings[key] = user_choices[count] if count < len(user_choices) else ""
-
+        self.user_choices = user_choices
         prompt_base = ""
-        for count, (key, val) in enumerate(self.section_headings.items(), start=1):
-            prompt_base += self._format_section_prompt(title=key, num_slides=val)
+        for count, section_heading in enumerate(self.section_headings):
+            prompt_base += self._format_section_prompt(title=section_heading, num_slides=user_choices[count])
 
         return self.get_message_prompt(prompt_base)
 
@@ -78,8 +76,8 @@ class ExtractionLayer:
                         "slide_title": "Title for each slide",
                         "slide_number": {{Slide number for this section}},
                         "speaker_notes": "250 words speech for slide",
-                        "table": Latex Table to header and row dictionary if present in {title} '' if absent,
-                        "image": Figure path if present in {title} section (possible selections: {self.figure_list}) '' if absent,
+                        "table": Latex Table to header and row dictionary if present in {title} "" if absent,
+                        "image": Figure path if present in {title} section (possible selections: {self.figure_list}) "" if absent,
                         "generative_prompt": Propose a cartoonist image prompt related to {title}
                     }}]
                 }}
@@ -90,7 +88,7 @@ class ExtractionLayer:
 
 if __name__ == "__main__":
     el = ExtractionLayer(file_name="examples/arXiv-2402.04616v1/complete_tex.tex")
-    user_choices = [3,1,1,1]
+    user_choices = [3, 1, 1, 1]
     messages = el.prompt_builder(user_choices=user_choices)
     pprint.pprint(messages)
     print(el.section_headings)

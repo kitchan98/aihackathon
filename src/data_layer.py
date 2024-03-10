@@ -14,7 +14,7 @@ os.environ["STABILITY_KEY"] = os.getenv("STABILITY_KEY", "")
 
 
 class DataLayer:
-    def __init__(self):
+    def __init__(self, save_folder="output"):
         self.anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
         self.openai_key = os.getenv(
             "OPENAI_API_KEY", ""
@@ -24,6 +24,8 @@ class DataLayer:
             verbose=True,
             engine="stable-diffusion-xl-1024-v1-0",
         )
+        os.makedirs(save_folder, exist_ok=True)
+        self.save_folder = save_folder
 
     def bullet_points(self, prompt):
         output = self.get_completion_from_messages(
@@ -47,7 +49,7 @@ class DataLayer:
     ):
         if openAI:
             openai.api_key = self.openai_key
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature,
@@ -99,11 +101,12 @@ class DataLayer:
                 for artifact in resp.artifacts:
                     if artifact.finish_reason == generation.FILTER:
                         warnings.warn(
-                            "Your request activated the API's safety filters and could not be processed. Please modify the prompt and try again."
+                            "Your request activated the API's safety filters and could not be processed. "
+                            "Please modify the prompt and try again."
                         )
                     elif artifact.type == generation.ARTIFACT_IMAGE:
                         img = Image.open(io.BytesIO(artifact.binary))
-                        generated_image = f"{Time_hash}_{artifact.seed}.png"
+                        generated_image = os.path.join(self.save_folder, f"{Time_hash}_{artifact.seed}.png")
                         img.save(generated_image)
                         return generated_image
         else:
