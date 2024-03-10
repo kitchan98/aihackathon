@@ -61,6 +61,17 @@ style: |
 
 ----"""
         )
+    
+    def add_title_table_and_content_slide(self, slide_info: dict) -> None:
+        """Add a title, table, and content slide to the presentation."""
+        self.slides.append(
+            f"""
+# {slide_info['title']}
+
+{slide_info['table']}
+
+----"""
+        )
 
     def sanitize_text(self, text: str) -> str:
         """Sanitize the text."""
