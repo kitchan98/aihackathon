@@ -162,5 +162,5 @@ cython_debug/
 
 node_modules/
 temp_dir_*/
-*.pdf
+
 *.pptx
