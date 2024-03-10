@@ -16,7 +16,7 @@ class ExtractionLayer:
 
         figure_list = []
         section_headings = []
-        for count, line in enumerate(latex_string):
+        for line in latex_string:
             if re.match(r"\\section", line):
                 head = line.lstrip("\\section{").rstrip().rstrip("}")
                 section_headings.append(head)
@@ -67,6 +67,7 @@ class ExtractionLayer:
     def _format_section_prompt(self, title, num_slides):
         """Format section prompts based on titles and other parameters."""
         prompt_template = f"""
+            'Paper Title': 'Extracted Paper Title from LaTeX file',
             {title}: {{
                 num_slides: {num_slides},
                 slides_information: {{List of {num_slides} information objects, "
