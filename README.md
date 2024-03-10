@@ -1,7 +1,19 @@
-# aihackathon
+# slidify.ai
 
-Commands
+In this repository, we create a human-in-the-loop pipeline to generate a first draft of the presentation for any academic paper.
+
+## Install the environment
+
+We provide a Dockerfile to install all the relevant dependencies. To build the Docker image, run the following command:
 
 ```bash
-ANTHROPIC_API_KEY=<KEY> streamlit run streamlit_app.py
+docker build -t slidify .
+```
+
+## Run the Streamlit app
+
+Once the image 
+
+```bash
+STABILITY_KEY=<KEY> OPENAI_API_KEY=<KEY> ANTHROPIC_API_KEY=<KEY> streamlit run streamlit_app.py
 ```

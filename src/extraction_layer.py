@@ -13,6 +13,7 @@ class ExtractionLayer:
         """Read LaTeX file and extract relevant information."""
         with open(self.file_name, "r") as f:
             latex_string = f.readlines()
+            latex_string = [x.replace("&", "and") for x in latex_string]
 
         figure_list = []
         section_headings = []

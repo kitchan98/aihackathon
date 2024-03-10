@@ -63,7 +63,7 @@ style: |
 
 ----"""
         )
-    
+
     def add_title_table_and_content_slide(self, slide_info: dict) -> None:
         """Add a title, table, and content slide to the presentation."""
         self.slides.append(
@@ -98,5 +98,19 @@ style: |
                 "--html",
                 "-o",
                 directory_name,
+            ]
+        )
+
+    def convert_to_pdf(self, filename: str, pdf_name: str) -> None:
+        """Convert the presentation to images."""
+        subprocess.run(
+            [
+                "npx",
+                "@marp-team/marp-cli@latest",
+                filename,
+                "-o",
+                pdf_name,
+                "--allow-local-files",
+                "--html",
             ]
         )

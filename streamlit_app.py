@@ -1,16 +1,11 @@
-from email.mime import image
-import enum
 import os
 import pickle
 import tempfile
-from typing import Dict
-from param import output
 import streamlit as st
 import base64
 from src.utils import convert_compressed_file_to_single_latex_file
 from src.extraction_layer import ExtractionLayer
 from src.data_layer import DataLayer
-from st_click_detector import click_detector
 
 # from src.presentation_creator import PresentationCreator
 from src.marp_creator import MarpCreator
@@ -49,7 +44,8 @@ def document_upload_app():
         #     tempfile.mkdtemp(prefix="temp_dir_", dir=".")
         # )  # Create a temporary directory
         # st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_ehk1qfm5"
-        st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_ha9jsu5p"
+        # st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_ha9jsu5p"
+        st.session_state.temp_dir = "/Users/shubhamjain/personal/aihackathon/aihackathon/temp_dir_8a6px7mc"
         bytes_data = uploaded_file.getvalue()
         uploaded_file_path = os.path.join(st.session_state.temp_dir, "uploaded_file.zip")
         with open(uploaded_file_path, "wb") as f:
@@ -93,35 +89,52 @@ def template_btn_clicked(template_index):
 
 def extract_data_from_tex():
     """Extract data from tex file."""
-    # messages = st.session_state.extractor.prompt_builder(st.session_state.slide_per_section)
-    # dl = DataLayer(save_folder="output_images")
-    # llm_output = dl.get_completion_from_messages(messages, openAI=False, model="claude-3-sonnet-20240229")
-    # output_json_path = os.path.join(st.session_state.temp_dir, "output.json")
+    messages = st.session_state.extractor.prompt_builder(st.session_state.slide_per_section)
+    dl = DataLayer(save_folder="output_images")
+    # with st.spinner("ClaudeAI and ChatGPT are working on your request..."):
+    #     llm_output = dl.get_completion_from_messages(messages, openAI=False, model="claude-3-sonnet-20240229")
+    output_json_path = os.path.join(st.session_state.temp_dir, "output.json")
     # with open(output_json_path, "w") as f:
     #     f.write(llm_output)
-    # with open(output_json_path, "r") as f:
-    #     llm_output = f.read()
-    # slide_specific_data = []
-    # for idx, x in enumerate(st.session_state.extractor.section_headings):
-    #     for y in range(1, st.session_state.extractor.user_choices[idx] + 1):
-    #         per_slide_dict = dl.llm_output_to_dict(llm_output, x, y)
-    #         # print(per_slide_dict)
-    #         per_slide_bullets = dl.bullet_points(per_slide_dict["speaker_notes"])
-    #         # print(per_slide_bullets)
-    #         per_slide_dict["image"] = dl.generate_image(per_slide_dict["image"], per_slide_dict["generative_prompt"])
-    #         slide_specific_data.append([per_slide_dict, per_slide_bullets])
+    with open(output_json_path, "r") as f:
+        llm_output = f.read()
+    slide_specific_data = []
+    # with st.spinner("Stability is in the HOUSE!! and generating images..."):
+    #     for idx, x in enumerate(st.session_state.extractor.section_headings):
+    #         for y in range(1, st.session_state.extractor.user_choices[idx] + 1):
+    #             per_slide_dict = dl.llm_output_to_dict(llm_output, x, y)
+    #             # print(per_slide_dict)
+    #             per_slide_bullets = dl.bullet_points(per_slide_dict["speaker_notes"])
+    #             # print(per_slide_bullets)
+    #             per_slide_dict["image"] = dl.generate_image(
+    #                 per_slide_dict["image"], per_slide_dict["generative_prompt"]
+    #             )
+    #             slide_specific_data.append([per_slide_dict, per_slide_bullets])
+    # slide_specific_data.insert(
+    #     0,
+    #     (
+    #         {
+    #             "slide_title": slide_specific_data[0][0]["Paper Title"],
+    #             "image": "",
+    #             "table": "",
+    #             "Paper Title": slide_specific_data[0][0]["Paper Title"],
+    #             "slide_number": 0,
+    #         },
+    #         [],
+    #     ),
+    # )
     slide_specific_data_pkl_path = os.path.join(st.session_state.temp_dir, "slide_specific_data.pkl")
     # with open(slide_specific_data_pkl_path, "wb") as f:
     #     pickle.dump(slide_specific_data, f)
     with open(slide_specific_data_pkl_path, "rb") as f:
         slide_specific_data = pickle.load(f)
         # st.write(slide_specific_data)
-        create_presentation(slide_specific_data)
+        with st.spinner("Time for one last step -- creating the presentation..."):
+            create_presentation(slide_specific_data)
 
 
 def create_presentation(slide_specific_data):
     """Create presentation from slide specific data."""
-    # prs_creator = PresentationCreator()
     st.session_state.slides_to_templates = {}
     st.session_state.slides_to_images = {}
     st.session_state.images_path = os.path.join(st.session_state.temp_dir, "images")
@@ -129,7 +142,6 @@ def create_presentation(slide_specific_data):
     st.session_state.result = []
     for idx, (slide_info, slide_bullets) in enumerate(slide_specific_data):
         prs_creator = MarpCreator()
-        st.write(slide_info)
         slide_data = {
             "title": slide_info["slide_title"],
             "content": "\n".join([x for x in slide_bullets]),
@@ -144,13 +156,12 @@ def create_presentation(slide_specific_data):
                 else ""
             ),
         }
-        # prs_creator.add_title_content_layout(
-        #     slide_info=slide_data,
-        # )
-        # prs_creator.add_picture_caption_layout(slide_info=slide_data)
-        prs_creator.add_title_and_content_slide(slide_info=slide_data)
-        prs_creator.add_title_image_and_content_slide(slide_info=slide_data)
-        if slide_info["table"] != "":
+        if slide_data["content"] != "":
+            prs_creator.add_title_and_content_slide(slide_info=slide_data)
+            prs_creator.add_title_image_and_content_slide(slide_info=slide_data)
+        else:
+            prs_creator.add_title_slide(slide_info=slide_data)
+        if slide_data["table"] != "":
             prs_creator.add_title_table_and_content_slide(slide_info=slide_data)
         st.session_state.slides_to_templates[idx] = prs_creator.slides
         md_path = os.path.join(st.session_state.temp_dir, f"slide_{idx}.md")
@@ -169,10 +180,6 @@ def create_presentation(slide_specific_data):
         ]  # remove the last image which is the last thank you slide
         st.session_state.result.append(-1)
     st.session_state.current_slide = 0
-    # prs_creator.save_presentation("presentation_sample.pptx")
-    # prs_creator.save_presentation("presentation_marp.md")
-    # st.session_state.prs_path = "presentation_marp.md"
-    # prs_creator.convert_presentation_to_image("presentation_sample.pptx", "presentation_images")
 
 
 def outline_app():
@@ -222,12 +229,47 @@ def template_selector():
     # print(st.session_state.result)
 
 
+def download_presentation():
+    """Download presentation."""
+    prs_creator = MarpCreator()
+    for idx in range(len(st.session_state.result)):
+        prs_creator.slides.append(st.session_state.slides_to_templates[idx][st.session_state.result[idx]])
+    presentation_md_path = os.path.join(st.session_state.temp_dir, "marp_final.md")
+    prs_creator.save_presentation(presentation_md_path)
+    pdf_path = os.path.join(st.session_state.temp_dir, "marp_final.pdf")
+    prs_creator.convert_to_pdf(presentation_md_path, pdf_path)
+    with open(pdf_path, "rb") as f:
+        pdf_bytes = f.read()
+        return pdf_bytes
+
+
 def slides_app():
+    """Slides app."""
+    # st.write(st.session_state.result)
     cols = st.columns([0.8, 0.2])
     with cols[0]:
         st.title("Welcome to Slides Builder!")
         st.write("Select the template you want for each slide and create your draft.")
-    # st.write(st.session_state)
+    with cols[1]:
+        if st.session_state.current_slide < len(st.session_state.result):
+            st.write(f"Slide {st.session_state.current_slide + 1} of {len(st.session_state.result)}")
+        enable_download = len([x for x in st.session_state.result if x != -1]) == len(st.session_state.result)
+        create_data = st.button(
+            "Create PDF",
+            disabled=(not enable_download),
+        )
+        if "data" not in st.session_state:
+            st.session_state.data = None
+        if create_data:
+            # logic to create data here
+            st.session_state.data = download_presentation()
+            # st.write(st.session_state)
+        if st.session_state.data is not None:
+            st.download_button(
+                "Download Presentation PDF",
+                data=st.session_state.data,
+                file_name="presentation.pdf",
+            )
     cols = st.columns([0.3, 0.7])
     with cols[1]:
         template_selector()
@@ -260,7 +302,7 @@ def main():
 
     if st.session_state.current_page == 2:
         setup_extractor()
-        st.write(f"Temporary directory path: {st.session_state.temp_dir}")
+        # st.write(f"Temporary directory path: {st.session_state.temp_dir}")
         page_1_placeholder.empty()
         with page_2_placeholder.container():
             outline_app()
@@ -272,7 +314,7 @@ def main():
 
 
 def initialize_page():
-    st.write("Initializing...")
+    # st.write("Initializing...")
     st.session_state.show_file_uploader = True
     st.session_state.initialized = True
     st.session_state.loading_complete = False
