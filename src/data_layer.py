@@ -73,6 +73,7 @@ class DataLayer:
         llm_output = llm_output.lstrip("```json").rstrip("```").strip()
         json_output = json.loads(llm_output)
         return {
+            "Paper Title": json_output["Paper Title"],
             "section_name": section_name,
             "slide_number": slide_number,
             "slide_title": json_output[section_name]["slides_information"][slide_number - 1]["slide_title"],

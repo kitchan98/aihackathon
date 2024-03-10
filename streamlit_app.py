@@ -13,6 +13,7 @@ from st_click_detector import click_detector
 
 # from src.presentation_creator import PresentationCreator
 from src.marp_creator import MarpCreator
+from tabulate import tabulate
 
 import time
 
@@ -136,6 +137,7 @@ def create_presentation(slide_specific_data):
                 if os.path.exists(slide_info["image"])
                 else os.path.join(st.session_state.extracted_folder, slide_info["image"])
             ),
+            "table": tabulate(slide_info["table"]["rows"], headers=slide_info["table"]["header"], tablefmt="pipe")
         }
         # prs_creator.add_title_content_layout(
         #     slide_info=slide_data,
